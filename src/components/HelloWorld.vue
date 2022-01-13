@@ -12,13 +12,17 @@
         no-data-text="No results"
         @change="loadHistory"
       ></v-autocomplete>
-      {{ instrumentsWithCandles }}
+
+      <div class="small">
+        <LineChart v-if="loaded" :chart-data="chartData" />
+      </div>
     </v-row>
   </v-container>
 </template>
 
 <script>
 const TOKEN = require("../configs/token.json");
+import LineChart from "./Chart.vue";
 
 export default {
   name: "HelloWorld",
@@ -26,12 +30,12 @@ export default {
   data: () => ({
     instruments: [],
     selectedTicker: [],
-    token: TOKEN.token,
     headers: {
-      Authorization:
-        "Bearer t.wRRBTQNQTifIDMkXK4ykpMKAHqZGhYZWEE5TKvk33UjA3JrMszrvzc3fjbtG6eeJ8ZdVYsvA8jldjg81ELQhAQ",
+      Authorization: "Bearer " + TOKEN.token,
       "Content-type": "application/json",
     },
+    datacollection: null,
+    loaded: false,
   }),
 
   methods: {
@@ -54,13 +58,18 @@ export default {
     },
 
     loadHistory() {
+      this.loaded = false;
       this.selectedTicker.forEach((ticker) => {
         const checkCandles = this.checkCandles(ticker);
 
-        if (checkCandles) return;
+        if (checkCandles) {
+          this.loaded = true;
+          return;
+        }
 
         this.loadHistoryByTicker(ticker);
       });
+      console.log(this.chartData);
     },
 
     loadHistoryByTicker(ticker) {
@@ -99,6 +108,7 @@ export default {
             };
           })
         );
+        this.loaded = true;
       });
     },
 
@@ -127,10 +137,45 @@ export default {
         this.checkCandles(instrument.ticker)
       );
     },
+
+    chartData() {
+      if (this.selectedTicker.length == 0) return {};
+      return {
+        labels: this.chartLabels,
+        datasets: this.chartDataset,
+      };
+    },
+    chartLabels() {
+      return this.instruments[
+        this.instruments.findIndex(
+          (item) => item.ticker === this.selectedTicker[0]
+        )
+      ].candles.map(({ time }) => time);
+    },
+
+    chartDataset() {
+      return this.selectedTicker.map((selected) => {
+        const instrument =
+          this.instruments[
+            this.instruments.findIndex(
+              (instrument) => instrument.ticker === selected
+            )
+          ];
+        return {
+          label: instrument.ticker,
+          backgroundColor: "#f87979",
+          data: instrument.candles?.map(({ close }) => close),
+        };
+      });
+    },
   },
 
   created() {
     this.ticketsFetch();
+  },
+
+  components: {
+    LineChart,
   },
 };
 </script>
