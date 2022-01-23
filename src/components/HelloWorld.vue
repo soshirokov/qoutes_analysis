@@ -27,19 +27,14 @@
 </template>
 
 <script>
-const TOKEN = require("../configs/token.json");
 import LineChart from "./Chart.vue";
+import { mapGetters, mapActions } from "vuex";
 
 export default {
   name: "HelloWorld",
 
   data: () => ({
-    instruments: [],
     selectedTicker: [],
-    headers: {
-      Authorization: "Bearer " + TOKEN.token,
-      "Content-type": "application/json",
-    },
     datacollection: null,
     chartOptions: {
       maintainAspectRatio: false,
@@ -47,23 +42,7 @@ export default {
   }),
 
   methods: {
-    ticketsFetch() {
-      const URL = "https://api-invest.tinkoff.ru/openapi/sandbox/market/stocks";
-      const OPTIONS = {
-        method: "GET",
-        headers: this.headers,
-      };
-
-      this.fetchData(URL, OPTIONS).then((result) =>
-        result.payload.instruments.forEach(({ figi, ticker }) =>
-          this.instruments.push({ figi: figi, ticker: ticker })
-        )
-      );
-    },
-
-    fetchData(URL, OPTIONS) {
-      return fetch(URL, OPTIONS).then((response) => response.json());
-    },
+    ...mapActions(["instrumentsFetch", "fetchData", "loadHistoryByTicker"]),
 
     loadHistory() {
       this.selectedTicker.forEach((ticker) => {
@@ -77,57 +56,10 @@ export default {
       });
     },
 
-    loadHistoryByTicker(ticker) {
-      const URL =
-        "https://api-invest.tinkoff.ru/openapi/sandbox/market/candles";
-      const OPTIONS = {
-        method: "GET",
-        headers: this.headers,
-      };
-      const PARAMS = {
-        figi: this.getFigiByTicker(ticker),
-        from: new Date(2016, 0, 1, 0, 0, 0, 0).toISOString(),
-        to: new Date().toISOString(),
-        interval: "month",
-      };
-
-      const urlParams = URL + "?" + new URLSearchParams(PARAMS).toString();
-
-      this.fetchData(urlParams, OPTIONS).then((result) => {
-        this.$set(
-          this.instruments[
-            this.instruments.findIndex(
-              (instrument) => instrument.figi == result.payload.figi
-            )
-          ],
-          "candles",
-          result.payload.candles.map((candle) => {
-            return {
-              close: candle.c,
-              time:
-                this.formatDate(new Date(candle.time).getDate()) +
-                "." +
-                this.formatDate(new Date(candle.time).getMonth() + 1) +
-                "." +
-                new Date(candle.time).getFullYear(),
-            };
-          })
-        );
-      });
-    },
-
-    getFigiByTicker(ticker) {
-      return this.instruments.filter((item) => item.ticker == ticker)[0].figi;
-    },
-
     checkCandles(ticker) {
       return this.instruments[
         this.instruments.findIndex((instrument) => instrument.ticker == ticker)
       ].candles?.length;
-    },
-
-    formatDate(date) {
-      return date.toString().length > 1 ? date : "0" + date;
     },
 
     randomColor() {
@@ -139,6 +71,8 @@ export default {
   },
 
   computed: {
+    ...mapGetters(["instruments"]),
+
     listOfLabels() {
       if (this.instruments.length === 0) return [];
       return this.instruments.map((item) => item.ticker).sort();
@@ -215,7 +149,7 @@ export default {
   },
 
   created() {
-    this.ticketsFetch();
+    this.instrumentsFetch();
   },
 
   components: {
