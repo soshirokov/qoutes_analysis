@@ -12,9 +12,15 @@
         no-data-text="No results"
         @change="loadHistory"
       ></v-autocomplete>
-
-      <div class="small">
-        <LineChart v-if="loaded" :chart-data="chartData" />
+    </v-row>
+    <v-row>
+      <div :class="$style.chartBox">
+        <LineChart
+          :class="$style.chart"
+          v-if="showChart"
+          :chart-data="chartContent"
+          :options="chartOptions"
+        />
       </div>
     </v-row>
   </v-container>
@@ -35,7 +41,9 @@ export default {
       "Content-type": "application/json",
     },
     datacollection: null,
-    loaded: false,
+    chartOptions: {
+      maintainAspectRatio: false,
+    },
   }),
 
   methods: {
@@ -58,18 +66,15 @@ export default {
     },
 
     loadHistory() {
-      this.loaded = false;
       this.selectedTicker.forEach((ticker) => {
         const checkCandles = this.checkCandles(ticker);
 
         if (checkCandles) {
-          this.loaded = true;
           return;
         }
 
         this.loadHistoryByTicker(ticker);
       });
-      console.log(this.chartData);
     },
 
     loadHistoryByTicker(ticker) {
@@ -108,7 +113,6 @@ export default {
             };
           })
         );
-        this.loaded = true;
       });
     },
 
@@ -125,6 +129,13 @@ export default {
     formatDate(date) {
       return date.toString().length > 1 ? date : "0" + date;
     },
+
+    randomColor() {
+      return `rgba(
+            ${Math.random() * 255}, 
+            ${Math.random() * 255},
+            ${Math.random() * 255}, 0.5)`;
+    },
   },
 
   computed: {
@@ -132,25 +143,42 @@ export default {
       if (this.instruments.length === 0) return [];
       return this.instruments.map((item) => item.ticker).sort();
     },
+
     instrumentsWithCandles() {
       return this.instruments.filter((instrument) =>
         this.checkCandles(instrument.ticker)
       );
     },
 
-    chartData() {
+    chartContent() {
       if (this.selectedTicker.length == 0) return {};
       return {
         labels: this.chartLabels,
         datasets: this.chartDataset,
       };
     },
+
     chartLabels() {
       return this.instruments[
         this.instruments.findIndex(
-          (item) => item.ticker === this.selectedTicker[0]
+          (instrument) =>
+            instrument.candles?.length === this.maxCandleLength &&
+            this.selectedTicker.indexOf(instrument.ticker) !== -1
         )
       ].candles.map(({ time }) => time);
+    },
+
+    maxCandleLength() {
+      return Math.max(
+        ...this.instruments
+          .filter((instrument) => {
+            return (
+              instrument.candles &&
+              this.selectedTicker.indexOf(instrument.ticker) !== -1
+            );
+          })
+          .map((instrument) => instrument.candles.length)
+      );
     },
 
     chartDataset() {
@@ -163,10 +191,26 @@ export default {
           ];
         return {
           label: instrument.ticker,
-          backgroundColor: "#f87979",
-          data: instrument.candles?.map(({ close }) => close),
+          backgroundColor: this.randomColor(),
+          data: new Array(this.maxCandleLength - instrument.candles?.length)
+            .fill("")
+            .concat(instrument.candles?.map(({ close }) => close)),
         };
       });
+    },
+
+    showChart() {
+      if (this.selectedTicker.length == 0) return false;
+
+      let flag = true;
+
+      this.selectedTicker.forEach((ticker) => {
+        if (this.checkCandles(ticker) === undefined) {
+          flag = false;
+        }
+      });
+
+      return flag;
     },
   },
 
@@ -179,3 +223,16 @@ export default {
   },
 };
 </script>
+
+<style module>
+.chart {
+  position: relative;
+  height: 400px;
+  width: 90vw;
+  max-width: 100%;
+}
+
+.chartBox {
+  margin: 0 auto;
+}
+</style>
