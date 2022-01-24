@@ -128,7 +128,7 @@ export default {
           backgroundColor: this.randomColor(),
           data: new Array(this.maxCandleLength - instrument.candles?.length)
             .fill("")
-            .concat(instrument.candles?.map(({ close }) => close)),
+            .concat(instrument.candles?.map(({ percentage }) => percentage)),
         };
       });
     },

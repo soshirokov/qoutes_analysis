@@ -32,6 +32,8 @@ export default new Vuex.Store({
     ADD_CANDLES({ instruments }, payload) {
       const dateFormat = date => date.toString().length > 1 ? date : "0" + date;
 
+      const firstClose = payload.candles[0].c;
+
       Vue.set(instruments[
         instruments.findIndex(
           (instrument) => instrument.figi == payload.figi
@@ -47,9 +49,10 @@ export default new Vuex.Store({
               dateFormat(new Date(candle.time).getMonth() + 1) +
               "." +
               new Date(candle.time).getFullYear(),
+            percentage: (candle.c / firstClose * 100).toFixed(2),
           };
         }));
-    }
+    },
   },
 
   actions: {
