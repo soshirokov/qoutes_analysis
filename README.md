@@ -1,24 +1,33 @@
-# tinkoff_quotes
+# Анализ котировок ценных бумаг
 
-## Project setup
+## Чтобы начать
+
+- Установить пакеты:
+
 ```
 npm install
 ```
 
-### Compiles and hot-reloads for development
+- Указать токен для доступа к Tinkoff Invest API:
+
+  1. Выпустить токен: [Инструкция по выпуску токена](https://tinkoff.github.io/investAPI/token/)
+  2. Переименовать файл src/configs/token_sample.json в token.json
+  3. Указать в token.json полученный токен
+
+```
+{
+    "token": "t.##############################################"
+}
+```
+
+### Запуск локально
+
 ```
 npm run serve
 ```
 
-### Compiles and minifies for production
+### Сборка проекта
+
 ```
 npm run build
 ```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
